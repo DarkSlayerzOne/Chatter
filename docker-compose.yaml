@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  nats:
+    container_name: natsy
+    image: nats
+    ports:
+      - 4222:4222
+
+networks:
+  nats:
+    name: nats
