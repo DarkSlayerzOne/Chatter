@@ -14,5 +14,11 @@ to deliver messages across golang backend services
 
 
 ## Todo
- - implement the latest ChatGpt
- - text to speech
+ - Dispatch and food ordering API (Grab and Uber)
+ - Predictions such as Markets and Weather
+ - News web feed
+ - IOT (Internet of Things)
+ - NoSQL
+ - Implement the latest ChatGpt from Open API
+ - Text to speech
+ - App in Ionic React
