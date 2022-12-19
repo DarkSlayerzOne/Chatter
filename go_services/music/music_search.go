@@ -3,27 +3,27 @@ package main
 import (
 	"fmt"
 	"log"
-	"os/exec"
-	"runtime"
+	"os"
 	"strings"
+	"time"
 
+	"github.com/hajimehoshi/go-mp3"
+	"github.com/hajimehoshi/oto/v2"
 	"github.com/nats-io/nats.go"
 )
+
+var musicDirectory = ``
 
 func tempDB(title string) string {
 
 	music := make(map[string]string)
 
-	music["timber"] = "https://www.youtube.com/watch?v=hHUbLv4ThOo"
-	music["sweet but psycho"] = "https://www.youtube.com/watch?v=WXBHCQYxwr0"
-	music["somebody that i used to know"] = "https://www.youtube.com/watch?v=8UVNT4wvIGY"
-	music["take on me"] = "https://www.youtube.com/watch?v=djV11Xbc914"
+	music["cowbell warrior"] = fmt.Sprintf("%sSXMPRA - COWBELL WARRIOR!.mp3", musicDirectory)
 
 	return music[strings.ToLower(title)]
 }
 
 func main() {
-
 	wait := make(chan bool)
 
 	nc, err := nats.Connect(nats.DefaultURL)
@@ -31,6 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	const topic = "send_message"
 
 	nc.Subscribe(topic, func(m *nats.Msg) {
@@ -41,23 +42,34 @@ func main() {
 		const keyWord = "play music"
 
 		if strings.Contains(msgResult, keyWord) {
+			log.Printf("System info: Play music %v", msgResult)
 
-			input := msgResult[11:]
-			url := tempDB(input)
-			var err error
+			if msgResult != "" {
 
-			switch runtime.GOOS {
-			case "linux":
-				err = exec.Command("xdg-open", url).Start()
-			case "windows":
-				err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-			case "darwin":
-				err = exec.Command("open", url).Start()
-			default:
-				err = fmt.Errorf("unsupported platform")
-			}
-			if err != nil {
-				log.Fatal(err)
+				input := msgResult[11:]
+				log.Printf("System info: Play %v", input)
+				url := tempDB(input)
+				f, _ := os.Open(url)
+
+				defer f.Close()
+
+				d, _ := mp3.NewDecoder(f)
+
+				c, ready, _ := oto.NewContext(d.SampleRate(), 2, 2)
+
+				<-ready
+
+				p := c.NewPlayer(d)
+				defer p.Close()
+				p.Play()
+
+				fmt.Printf("Length: %d[bytes]\n", d.Length())
+				for {
+					time.Sleep(time.Second)
+					if !p.IsPlaying() {
+						break
+					}
+				}
 			}
 		}
 
@@ -66,5 +78,4 @@ func main() {
 	log.Println("Subscribed to", topic)
 
 	<-wait
-
 }
